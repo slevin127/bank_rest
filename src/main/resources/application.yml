@@ -1,8 +1,45 @@
-#
-# application.yml — главный конфигурационный файл Spring Boot.
+﻿spring:
+  application:
+    name: bank-rest
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/bankcards}
+    username: ${SPRING_DATASOURCE_USERNAME:bankcards}
+    password: ${SPRING_DATASOURCE_PASSWORD:bankcards}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  liquibase:
+    change-log: classpath:db/migration/db.changelog-master.yaml
+    contexts: ${SPRING_LIQUIBASE_CONTEXTS:default}
 
-Что нужно сделать:
-  - Указать настройки подключения к базе данных.
-  - Указать порт приложения.
-  - Настроить параметры безопасности и JWT.
-  - Включить Swagger UI.
+server:
+  port: ${SERVER_PORT:8080}
+
+logging:
+  level:
+    org.springframework.security: INFO
+    org.hibernate.SQL: INFO
+
+app:
+  crypto:
+    secret-key: ${APP_CRYPTO_SECRET:0123456789abcdef0123456789abcdef}
+  jwt:
+    issuer: bank-rest
+    access-token-expiration-minutes: ${APP_JWT_ACCESS_EXP_MINUTES:60}
+    refresh-token-expiration-days: ${APP_JWT_REFRESH_EXP_DAYS:7}
+    secret: ${APP_JWT_SECRET:change-me-to-a-secure-value-change-me}
+  init:
+    admin:
+      username: ${APP_ADMIN_USERNAME:admin}
+      password: ${APP_ADMIN_PASSWORD:Admin12345!}
+      full-name: ${APP_ADMIN_FULL_NAME:System Administrator}
+      email: ${APP_ADMIN_EMAIL:admin@example.com}
+    sample-cards:
+      enabled: ${APP_SAMPLE_CARDS_ENABLED:true}
+      owner-username: ${APP_SAMPLE_CARDS_OWNER:admin}
+      count: ${APP_SAMPLE_CARDS_COUNT:10}

@@ -1,0 +1,261 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: 0001-01-create-pgcrypto
+      author: codex
+      changes:
+        - sql:
+            sql: CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+  - changeSet:
+      id: 0001-02-create-users
+      author: codex
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                  defaultValueComputed: gen_random_uuid()
+              - column:
+                  name: username
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: password_hash
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: full_name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: enabled
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+  - changeSet:
+      id: 0001-03-add-unique-constraints
+      author: codex
+      changes:
+        - addUniqueConstraint:
+            columnNames: username
+            constraintName: uq_users_username
+            tableName: users
+        - addUniqueConstraint:
+            columnNames: email
+            constraintName: uq_users_email
+            tableName: users
+            deferrable: false
+            initiallyDeferred: false
+  - changeSet:
+      id: 0001-04-create-user-roles
+      author: codex
+      changes:
+        - createTable:
+            tableName: user_roles
+            columns:
+              - column:
+                  name: user_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: user_roles
+            columnNames: user_id, role
+            constraintName: pk_user_roles
+        - addForeignKeyConstraint:
+            baseTableName: user_roles
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_user_roles_users
+            onDelete: CASCADE
+  - changeSet:
+      id: 0001-05-create-cards
+      author: codex
+      changes:
+        - createTable:
+            tableName: cards
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: owner_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: masked_number
+                  type: varchar(19)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: card_number_encrypted
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: card_number_iv
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expiration_date
+                  type: date
+                  constraints:
+                    nullable: false
+              - column:
+                  name: balance
+                  type: numeric(19,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+        - addForeignKeyConstraint:
+            baseTableName: cards
+            baseColumnNames: owner_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cards_users
+            onDelete: CASCADE
+        - addUniqueConstraint:
+            tableName: cards
+            columnNames: card_number_encrypted
+            constraintName: uq_cards_card_number_encrypted
+        - createIndex:
+            tableName: cards
+            indexName: idx_cards_owner_id
+            columns:
+              - column:
+                  name: owner_id
+        - createIndex:
+            tableName: cards
+            indexName: idx_cards_status
+            columns:
+              - column:
+                  name: status
+  - changeSet:
+      id: 0001-06-create-card-transfers
+      author: codex
+      changes:
+        - createTable:
+            tableName: card_transfers
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: source_card_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: target_card_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount
+                  type: numeric(19,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: varchar(255)
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+        - addForeignKeyConstraint:
+            baseTableName: card_transfers
+            baseColumnNames: source_card_id
+            referencedTableName: cards
+            referencedColumnNames: id
+            constraintName: fk_card_transfers_source_card
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: card_transfers
+            baseColumnNames: target_card_id
+            referencedTableName: cards
+            referencedColumnNames: id
+            constraintName: fk_card_transfers_target_card
+            onDelete: CASCADE
+        - createIndex:
+            tableName: card_transfers
+            indexName: idx_card_transfers_source_card
+            columns:
+              - column:
+                  name: source_card_id
+        - createIndex:
+            tableName: card_transfers
+            indexName: idx_card_transfers_target_card
+            columns:
+              - column:
+                  name: target_card_id
+  - changeSet:
+      id: 0001-07-add-users-last-login
+      author: codex
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: last_login_at
+                  type: timestamp

@@ -1,1 +1,314 @@
-# Здесь будет OpenAPI описание всех доступных эндпоинтов и моделей данных.
+﻿openapi: 3.0.3
+info:
+  title: Bank Cards API
+  version: 1.0.0
+  description: >-
+    Backend service for managing bank cards, internal transfers and user accounts.
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Role:
+      type: string
+      enum: [ADMIN, USER]
+    CardStatus:
+      type: string
+      enum: [ACTIVE, BLOCKED, EXPIRED]
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        fullName:
+          type: string
+        email:
+          type: string
+          nullable: true
+        enabled:
+          type: boolean
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, username, fullName, enabled, roles]
+    UserCreateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        fullName:
+          type: string
+        email:
+          type: string
+          nullable: true
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+        enabled:
+          type: boolean
+      required: [username, password, fullName, roles, enabled]
+    UserUpdateRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+        email:
+          type: string
+          nullable: true
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+        enabled:
+          type: boolean
+        password:
+          type: string
+          nullable: true
+      required: [fullName, roles, enabled]
+    CardResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ownerId:
+          type: string
+          format: uuid
+        ownerFullName:
+          type: string
+        maskedNumber:
+          type: string
+        status:
+          $ref: '#/components/schemas/CardStatus'
+        expirationDate:
+          type: string
+          format: date
+        balance:
+          type: number
+          format: double
+      required: [id, ownerId, ownerFullName, maskedNumber, status, expirationDate, balance]
+    PageResponseUserResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        last:
+          type: boolean
+      required: [items, page, size, totalElements, totalPages, last]
+    PageResponseCardResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CardResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        last:
+          type: boolean
+      required: [items, page, size, totalElements, totalPages, last]
+paths:
+  /api/admin/users:
+    get:
+      summary: List users
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Optional search phrase for username or full name
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 0
+        - in: query
+          name: size
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: sort
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paged collection of users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseUserResponse'
+    post:
+      summary: Create user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+  /api/admin/users/{userId}:
+    get:
+      summary: Get user by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+    put:
+      summary: Update user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+    delete:
+      summary: Delete user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: User deleted
+  /api/cards:
+    get:
+      summary: List current user's cards
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/CardStatus'
+        - in: query
+          name: maskedNumber
+          schema:
+            type: string
+        - in: query
+          name: minBalance
+          schema:
+            type: number
+            format: double
+        - in: query
+          name: maxBalance
+          schema:
+            type: number
+            format: double
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 0
+        - in: query
+          name: size
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: sort
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paged collection of cards owned by the authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseCardResponse'
+  /api/cards/{cardId}/block-request:
+    post:
+      summary: Request card block
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Block request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardResponse'
